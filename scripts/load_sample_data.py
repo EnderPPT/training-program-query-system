@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS staging_courses (
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="导入 data/samples 下的培养方案 CSV 到 PostgreSQL")
-    parser.add_argument("--database-url", default=os.getenv("DATABASE_URL"), help="PostgreSQL 连接串，默认读取 DATABASE_URL")
+    parser.add_argument("--database-url", default=DATABASE_URL, help="PostgreSQL 连接串，默认读取 DATABASE_URL")
     parser.add_argument("--samples-dir", default=str(ROOT_DIR / "data" / "samples"), help="CSV 样例目录")
     parser.add_argument("--pattern", default="*.csv", help="CSV 文件匹配模式")
     parser.add_argument("--init-schema", action="store_true", help="先执行 sql/01_schema.sql，适用于空数据库")
