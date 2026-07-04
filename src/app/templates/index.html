@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>培养方案数据库系统</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="page-bg"></div>
+
+  <header class="navbar">
+    <div class="brand">
+      <div class="brand-logo">DB</div>
+      <div>
+        <div class="brand-title">培养方案数据库系统</div>
+        <div class="brand-subtitle">Training Program Query System</div>
+      </div>
+    </div>
+    <nav>
+      <a href="/docs" target="_blank">API 文档</a>
+      <a href="/health" target="_blank">健康检查</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div class="hero-text">
+        <div class="badge">PostgreSQL · FastAPI · SWUFE 2025</div>
+        <h1>让培养方案数据<br />可查询、可分析、可复现</h1>
+        <p>
+          面向西南财经大学计算机与人工智能学院培养方案数据，
+          提供专业课程查询、必修课查询、课程搜索与开课专业分析。
+        </p>
+      </div>
+
+      <div class="hero-card">
+        <div class="card-title">当前数据范围</div>
+        <div class="major-list">
+          <span>计算机科学与技术</span>
+          <span>人工智能</span>
+          <span>数据科学与大数据技术</span>
+          <span>网络空间安全</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="stats">
+      <div class="stat-card">
+        <span class="stat-number">4</span>
+        <span class="stat-label">专业</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-number">6</span>
+        <span class="stat-label">规范化数据表</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-number">5+</span>
+        <span class="stat-label">查询接口</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-number">PG</span>
+        <span class="stat-label">关系数据库</span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>交互式查询</h2>
+          <p>输入专业或课程名称，系统将调用 FastAPI 接口并展示结果。</p>
+        </div>
+      </div>
+
+      <div class="query-grid">
+        <div class="query-card">
+          <h3>专业课程查询</h3>
+          <input id="majorInput" value="人工智能" placeholder="请输入专业名称" />
+          <div class="button-row">
+            <button onclick="queryMajorCourses()">全部课程</button>
+            <button class="secondary" onclick="queryRequiredCourses()">必修课程</button>
+            <button class="secondary" onclick="queryMajorSummary()">总学分</button>
+          </div>
+        </div>
+
+        <div class="query-card">
+          <h3>课程查询</h3>
+          <input id="courseInput" value="高等数学Ⅰ" placeholder="请输入课程名称" />
+          <div class="button-row">
+            <button onclick="queryCourseDetail()">学分学时</button>
+            <button class="secondary" onclick="queryCourseMajors()">开设专业</button>
+          </div>
+        </div>
+
+        <div class="query-card">
+          <h3>学院概览</h3>
+          <input id="collegeInput" value="计算机与人工智能学院" placeholder="请输入学院名称" />
+          <div class="button-row">
+            <button onclick="queryCollegeSummary()">培养方案概览</button>
+          </div>
+        </div>
+
+        <div class="query-card">
+          <h3>课程模糊搜索</h3>
+          <input id="keywordInput" value="数学" placeholder="请输入关键词" />
+          <div class="button-row">
+            <button onclick="searchCourses()">搜索课程</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="result-panel">
+      <div class="result-header">
+        <h2>查询结果</h2>
+        <button class="ghost" onclick="clearResult()">清空</button>
+      </div>
+      <div id="resultMeta" class="result-meta">尚未查询</div>
+      <div id="result" class="result-box"></div>
+    </section>
+  </main>
+
+  <script>
+    async function requestJson(url) {
+      const result = document.getElementById("result");
+      const meta = document.getElementById("resultMeta");
+
+      result.innerHTML = '<div class="loading">查询中...</div>';
+      meta.textContent = url;
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (!res.ok) {
+          result.innerHTML = `<div class="error">${data.detail || "查询失败"}</div>`;
+          return;
+        }
+
+        renderTable(Array.isArray(data) ? data : [data]);
+      } catch (err) {
+        result.innerHTML = `<div class="error">请求失败：${err.message}</div>`;
+      }
+    }
+
+    function renderTable(rows) {
+      const result = document.getElementById("result");
+      const meta = document.getElementById("resultMeta");
+
+      if (!rows.length) {
+        result.innerHTML = '<div class="empty">没有结果</div>';
+        return;
+      }
+
+      const keys = Object.keys(rows[0]);
+      meta.textContent += ` · 返回 ${rows.length} 条记录`;
+
+      const thead = keys.map(k => `<th>${k}</th>`).join("");
+      const tbody = rows.map(row => {
+        const cells = keys.map(k => `<td>${row[k] ?? ""}</td>`).join("");
+        return `<tr>${cells}</tr>`;
+      }).join("");
+
+      result.innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead><tr>${thead}</tr></thead>
+            <tbody>${tbody}</tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function queryMajorCourses() {
+      const major = encodeURIComponent(document.getElementById("majorInput").value.trim());
+      requestJson(`/majors/${major}/courses`);
+    }
+
+    function queryRequiredCourses() {
+      const major = encodeURIComponent(document.getElementById("majorInput").value.trim());
+      requestJson(`/majors/${major}/required-courses`);
+    }
+
+    function queryMajorSummary() {
+      const major = encodeURIComponent(document.getElementById("majorInput").value.trim());
+      requestJson(`/majors/${major}/summary`);
+    }
+
+    function queryCourseDetail() {
+      const course = encodeURIComponent(document.getElementById("courseInput").value.trim());
+      requestJson(`/courses/${course}`);
+    }
+
+    function queryCourseMajors() {
+      const course = encodeURIComponent(document.getElementById("courseInput").value.trim());
+      requestJson(`/courses/${course}/majors`);
+    }
+
+    function queryCollegeSummary() {
+      const college = encodeURIComponent(document.getElementById("collegeInput").value.trim());
+      requestJson(`/colleges/${college}/summary`);
+    }
+
+    function searchCourses() {
+      const keyword = encodeURIComponent(document.getElementById("keywordInput").value.trim());
+      requestJson(`/courses/search?keyword=${keyword}`);
+    }
+
+    function clearResult() {
+      document.getElementById("resultMeta").textContent = "尚未查询";
+      document.getElementById("result").innerHTML = "";
+    }
+  </script>
+</body>
+</html>

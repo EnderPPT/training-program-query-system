@@ -1,0 +1,13 @@
+[project]
+name = "db-project"
+version = "0.1.0"
+description = "Training program query system with FastAPI"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "psycopg[binary]",
+    "pydantic",
+    "jinja2",
+]
